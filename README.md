@@ -26,12 +26,6 @@ bash <(curl -fsSL https://raw.githubusercontent.com/laowtun/cta/main/smx.sh)
 ```
 **功能**: 自选内核(1=Xray 2=sing-box 3=mihomo), 自选协议, 5种模式(临时/固定隧道/网页授权/卸载/清缓存)
 
-### 5. suoha.sh (原始基础脚本)
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/laowtun/cta/main/suoha.sh)
-```
-**说明**: 已被xms.sh等新脚本继承了系统适配能力,支持Debian/Ubuntu/CentOS/Fedora/Alpine
-
 ## 🚀 快速使用
 
 ### 推荐方案
