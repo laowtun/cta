@@ -1,171 +1,71 @@
-# xms-singbox - Unified Proxy Deployment Scripts
+# xms-singbox - 脚本下载安装文档
 
-## Repository Overview
+## 📥 一键下载安装命令
 
-This repository contains a collection of proxy deployment scripts for **Xray, Sing-box, and Mihomo** cores. The scripts support multiple protocols (VLESS, VMess, Trojan, Shadowsocks), various transport layers (WebSocket, gRPC, mKCP), and Cloudflare Tunnel integration.
-
-## 📦 Available Scripts
-
-### 1. `smx.sh` - Comprehensive Manager (V1 Version)
-- **Full-featured**: Contains all deployment functions
-- **Supported Cores**: Xray, Sing-box, Mihomo
-- **Protocols**: VLESS, VMess, Trojan, Shadowsocks, Hysteria2, etc.
-- **Modes**: Temporary tunnel, Fixed token tunnel, Uninstall, Cleanup
-- **System Support**: Debian/Ubuntu/CentOS/Fedora/Alpine
-- **Key Feature**: Inherits suoha.sh system adaptation capabilities
-
-### 2. `cs.sh` - Sing-box Core Script
-- **Focus**: Sing-box core deployment
-- **Modes**: Temporary tunnel, Fixed token tunnel, Uninstall, Cleanup
-- **Protocols**: VLESS+WS, VMess+WS, Trojan+WS, Shadowsocks, Mixed, Hysteria2, AnyTLS, Naive
-- **Key Feature**: Multi-protocol support in single process
-
-### 3. `cm.sh` - Mihomo Core Script
-- **Focus**: Mihomo (Clash Meta) deployment
-- **Modes**: Temporary tunnel, Fixed token tunnel, Uninstall, Cleanup
-- **Protocols**: Shadowsocks, VMess, VLESS, Trojan, Snell, Hysteria2, TUIC, WireGuard
-- **Key Feature**: Policy-based routing and advanced routing
-
-### 4. `cx.sh` - Xray Core Script
-- **Focus**: Xray core deployment
-- **Modes**: Temporary tunnel, Fixed token tunnel, Uninstall, Cleanup
-- **Protocols**: VLESS, VMess, Trojan, Shadowsocks, mKCP, gRPC, Reality
-- **Key Feature**: Lightweight, performance-oriented
-
-### 5. `suoha.sh` - Original Base Script
-- **Purpose**: Original base script with system adaptation
-- **Supported OS**: Debian, Ubuntu, CentOS, Fedora, Alpine
-- **Package Managers**: apt, yum, apk
-- **Role**: Foundation for other scripts' system compatibility
-
-### 6. `xms-singbox.sh` - New Script (Interactive Version)
-- **Focus**: Sing-box with built-in cloudflared
-- **Modes**: Temporary tunnel (trycloudflare), Fixed token tunnel
-- **Key Feature**: Domain not hardcoded - user inputs at runtime
-- **Protocols**: VLESS+WS (recommended for Cloudflare Tunnel)
-
-### 7. `xms-singbox.sh` (Clean Versions - Recently Deleted from Git)
-These clean versions were created to avoid forbidden keywords but have been removed from the repository:
-- `xms_clean.sh`
-- `cs_clean.sh`
-- `cm_clean.sh`
-- `cx_clean.sh`
-- `suoha_clean.sh`
-
-## 🚀 Quick Start
-
-### Using smx.sh (Recommended)
+### 1. cm.sh (Mihomo 综合部署)
 ```bash
-# Basic deployment
-bash smx.sh
+bash <(curl -fsSL https://raw.githubusercontent.com/laowtun/cta/main/cm.sh)
+```
+**模式**: 1-临时隧道, 2-固定token隧道, 3-卸载服务, 4-清理残留, 0-退出
 
-# Or with specific parameters
-bash smx.sh --core sing-box --protocol vless-ws --transport ws --port 8001 --domain example.com
+### 2. cs.sh (Sing-box 综合部署)
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/laowtun/cta/main/cs.sh)
+```
+**模式**: 1-临时隧道, 2-固定token隧道, 3-卸载服务, 4-清理残留, 0-退出
 
-# Uninstall
-bash smx.sh --uninstall
+### 3. cx.sh (Xray 综合部署)
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/laowtun/cta/main/cx.sh)
+```
+**模式**: 1-临时隧道, 2-固定token隧道, 3-卸载服务, 4-清理残留, 0-退出
 
-# Cleanup
-bash smx.sh --cleanup
+### 4. smx.sh (统一代理节点部署脚本)
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/laowtun/cta/main/smx.sh)
+```
+**功能**: 自选内核(1=Xray 2=sing-box 3=mihomo), 自选协议, 5种模式(临时/固定隧道/网页授权/卸载/清缓存)
+
+### 5. suoha.sh (原始基础脚本)
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/laowtun/cta/main/suoha.sh)
+```
+**说明**: 已被xms.sh等新脚本继承了系统适配能力,支持Debian/Ubuntu/CentOS/Fedora/Alpine
+
+## 🚀 快速使用
+
+### 推荐方案
+```bash
+# 使用 smx.sh (综合管理器，功能最全)
+bash <(curl -fsSL https://raw.githubusercontent.com/laowtun/cta/main/smx.sh)
+
+# 或使用单核脚本
+bash <(curl -fsSL https://raw.githubusercontent.com/laowtun/cta/main/cs.sh)  # sing-box
+bash <(curl -fsSL https://raw.githubusercontent.com/laowtun/cta/main/cm.sh)  # mihomo
+bash <(curl -fsSL https://raw.githubusercontent.com/laowtun/cta/main/cx.sh)  # xray
 ```
 
-### Using cs.sh (Sing-box Focus)
+### 系统适配
+这些脚本已适配以下系统:
+- Debian/Ubuntu/CentOS/Fedora/Alpine
+- 包管理器自动适配: apt/yum/apk
+
+## 📋 使用说明
+
+### 安装任意脚本
 ```bash
-# Temporary tunnel mode
-bash cs.sh 1
-
-# Fixed token tunnel mode
-bash cs.sh 2
-
-# Uninstall
-bash cs.sh 3
-
-# Cleanup
-bash cs.sh 4
-
-# Exit
-bash cs.sh 0
+bash <(curl -fsSL https://raw.githubusercontent.com/laowtun/cta/main/脚本文件名.sh)
 ```
 
-### Using cm.sh (Mihomo Focus)
-```bash
-# Temporary tunnel mode
-bash cm.sh 1
+### 常用操作
+- **临时隧道**: 域名随重启变化，无需绑定
+- **固定token隧道**: 输入域名后重启不变
+- **卸载服务**: 卸载代理相关配置
+- **清理残留**: 清理无用的配置文件和缓存
 
-# Fixed token tunnel mode
-bash cm.sh 2
-
-# Uninstall
-bash cm.sh 3
-
-# Cleanup
-bash cm.sh 4
-
-# Exit
-bash cm.sh 0
-```
-
-### Using cx.sh (Xray Focus)
-```bash
-# Temporary tunnel mode
-bash cx.sh 1
-
-# Fixed token tunnel mode
-bash cx.sh 2
-
-# Uninstall
-bash cx.sh 3
-
-# Cleanup
-bash cx.sh 4
-
-# Exit
-bash cx.sh 0
-```
-
-## 🛠️ System Requirements
-
-- **Supported OS**: Debian 12, Ubuntu 22.04, CentOS 8+, Fedora 36+, Alpine 3.19
-- **Memory**: ≥ 256MB (512MB+ recommended)
-- **Disk**: ≥ 100MB free space
-- **Ports**: Required port must match Cloudflare Tunnel `service` port
-- **Domain**: Optional for temporary tunnels, required for fixed token tunnels
-
-## ⚙️ Configuration Notes
-
-### Cloudflare Tunnel Integration
-- **Internal cloudflared**: sing-box v1.6+ has built-in support
-- **No extra download needed**: Cloudflared is integrated into the sing-box binary
-- **Domain binding**: Fixed token mode binds to your domain name
-
-### Protocol Selection
-- **vless-ws**: VLESS + WebSocket (recommended for Cloudflare Tunnel)
-- **trojan-ws**: Trojan + WebSocket
-- **ss**: Shadowsocks encryption
-- **hysteria2**: Hysteria2 + QUIC transport (requires public IP)
-- **mixed**: SOCKS5 + HTTP hybrid proxy
-
-### Tunnel Modes
-- **临时隧道 (Temporary)**: trycloudflare, 域名随重启变化
-- **固定token隧道 (Fixed Token)**: 输入域名绑定，重启后保持不变
-
-## 📞 Contact & Maintenance
-
-- **Maintainer**: laowtun
-- **Repository**: https://github.com/laowtun/cta
-- **Original Scripts**: laowtun/cta (GitHub)
-- **System Adaptation**: Inherits suoha.sh capabilities
-
-## 🆘 Getting Help
-
-- Check the script's built-in help: `bash smx.sh --帮助`
-- View script comments at the top of each file
-- Issues: GitHub Repository Issues
-- Community: Discussions on GitHub
-
-## 📄 License
-
-Most scripts are open source for personal use. Please check each script's header for specific licensing information.
+## 📬 联系方式
+- GitHub: https://github.com/laowtun/cta
+- 问题反馈: GitHub Issues
 
 ---
-*Generated for laowtun's GitHub Repository*
+*这些脚本由 laowtun 独立开发和维护*
