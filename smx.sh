@@ -45,6 +45,28 @@ install_deps() {
     fi
 }
 
+# ---------- 安全输入（支持重试） ----------
+ask_input() {
+    local prompt="$1" default="${2:-}" allow_empty="${3:-}" val=""
+    while true; do
+        read -r -p "$prompt" val
+        [ -z "$val" ] && [ -n "$default" ] && val="$default"
+        if [ -n "$val" ] || [ "$allow_empty" = "1" ]; then
+            echo "$val"
+            return 0
+        fi
+        warn "输入不能为空，请重新输入 (Ctrl+C 退出)"
+    done
+}
+
+ask_confirm() {
+    local prompt="$1" val="$2"
+    echo -e "  ${GREEN}你输入的是:${NC} $val"
+    read -r -p "  确认正确？(Y/n, 默认Y): " yn
+    [ "$yn" = "n" ] || [ "$yn" = "N" ] && return 1
+    return 0
+}
+
 # ---------- Radar 节点名 ----------
 get_radar_info() {
     local ipv="${1:-4}" api
@@ -469,16 +491,64 @@ quicktunnel() {
 # 模式3: Token+域名固定隧道
 token_tunnel() {
     mkdir -p "$DIR"
-    read -p "请选择协议(1.vmess,2.vless,默认1): " protocol
-    [ -z "$protocol" ] && protocol=1
-    read -p "请输入 Cloudflare Tunnel Token: " token
-    [ -z "$token" ] && { err "Token 不能为空"; exit 1; }
-    read -p "请输入绑定域名(如: node.example.com): " tdomain
-    [ -z "$tdomain" ] && { err "域名不能为空"; exit 1; }
-    read -p "请输入本地服务端口(默认8001): " port
-    [ -z "$port" ] && port=8001
-    read -p "请选择argo连接IPV4或IPV6(输入4或6,默认4): " ips
-    [ -z "$ips" ] && ips=4
+
+    # 协议选择（可重试）
+    while true; do
+        read -r -p "请选择协议(1.vmess,2.vless,默认1): " protocol
+        [ -z "$protocol" ] && protocol=1
+        if [ "$protocol" = "1" ] || [ "$protocol" = "2" ]; then break; fi
+        warn "请输入 1 或 2"
+    done
+
+    # Token 输入（可重试 + 确认）
+    while true; do
+        echo -e "\n${GREEN}请粘贴 Cloudflare Tunnel Token${NC}"
+        echo "提示: Token 很长(200+字符)，粘贴后按回车"
+        echo "      如果粘贴有误，输入 n 重新粘贴"
+        read -r -p "Token: " token
+        if [ -z "$token" ]; then
+            warn "Token 不能为空，请重新粘贴 (Ctrl+C 退出)"
+            continue
+        fi
+        echo -e "  ${GREEN}你输入的 Token (前30字符):${NC} ${token:0:30}..."
+        echo -e "  ${GREEN}Token 长度:${NC} ${#token} 字符"
+        read -r -p "  确认正确？(Y/n, 默认Y): " yn
+        [ "$yn" = "n" ] || [ "$yn" = "N" ] && { warn "请重新粘贴 Token"; continue; }
+        break
+    done
+
+    # 域名输入（可重试）
+    while true; do
+        read -r -p "请输入绑定域名(如: node.example.com): " tdomain
+        if [ -z "$tdomain" ]; then
+            warn "域名不能为空，请重新输入 (Ctrl+C 退出)"
+            continue
+        fi
+        if ! echo "$tdomain" | grep -qE '^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'; then
+            warn "域名格式不正确，请重新输入"
+            continue
+        fi
+        echo -e "  ${GREEN}你输入的是:${NC} $tdomain"
+        read -r -p "  确认正确？(Y/n, 默认Y): " yn
+        [ "$yn" = "n" ] || [ "$yn" = "N" ] && { warn "请重新输入域名"; continue; }
+        break
+    done
+
+    # 端口输入（可重试）
+    while true; do
+        read -r -p "请输入本地服务端口(默认8001): " port
+        [ -z "$port" ] && port=8001
+        if [ "$port" -ge 1 ] && [ "$port" -le 65535 ] 2>/dev/null; then break; fi
+        warn "端口必须是 1-65535 的数字"
+    done
+
+    # IPv4/6 选择
+    while true; do
+        read -r -p "请选择argo连接IPV4或IPV6(输入4或6,默认4): " ips
+        [ -z "$ips" ] && ips=4
+        if [ "$ips" = "4" ] || [ "$ips" = "6" ]; then break; fi
+        warn "请输入 4 或 6"
+    done
 
     stop_services >/dev/null 2>&1
 
@@ -563,10 +633,22 @@ clear_cache() {
 
 installtunnel() {
     mkdir -p "$DIR"
-    read -p "请选择协议(1.vmess,2.vless,默认1): " protocol
-    [ -z "$protocol" ] && protocol=1
-    read -p "请选择argo连接IPV4或IPV6(输入4或6,默认4): " ips
-    [ -z "$ips" ] && ips=4
+
+    # 协议选择（可重试）
+    while true; do
+        read -r -p "请选择协议(1.vmess,2.vless,默认1): " protocol
+        [ -z "$protocol" ] && protocol=1
+        if [ "$protocol" = "1" ] || [ "$protocol" = "2" ]; then break; fi
+        warn "请输入 1 或 2"
+    done
+
+    # IPv4/6 选择
+    while true; do
+        read -r -p "请选择argo连接IPV4或IPV6(输入4或6,默认4): " ips
+        [ -z "$ips" ] && ips=4
+        if [ "$ips" = "4" ] || [ "$ips" = "6" ]; then break; fi
+        warn "请输入 4 或 6"
+    done
 
     stop_services >/dev/null 2>&1
 
@@ -595,12 +677,23 @@ installtunnel() {
     sed 1,2d "$DIR/argo.log" | awk '{print $2}'
     echo -e "\n自定义一个完整二级域名, 例如 xxx.example.com"
     echo "必须是网页里面绑定授权的域名才生效, 不能乱输入"
-    read -p "输入绑定域名的完整二级域名: " domain
-    if [ -z "$domain" ]; then
-        echo "没有设置域名"; exit 1
-    elif [ $(echo "$domain" | grep "\." | wc -l) == 0 ]; then
-        echo "域名格式不正确"; exit 1
-    fi
+
+    # 域名输入（可重试 + 确认）
+    while true; do
+        read -r -p "输入绑定域名的完整二级域名: " domain
+        if [ -z "$domain" ]; then
+            warn "域名不能为空，请重新输入 (Ctrl+C 退出)"
+            continue
+        fi
+        if ! echo "$domain" | grep -qE '^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'; then
+            warn "域名格式不正确，请重新输入"
+            continue
+        fi
+        echo -e "  ${GREEN}你输入的是:${NC} $domain"
+        read -r -p "  确认正确？(Y/n, 默认Y): " yn
+        [ "$yn" = "n" ] || [ "$yn" = "N" ] && { warn "请重新输入域名"; continue; }
+        break
+    done
     name=$(echo "$domain" | awk -F\. '{print $1}')
     if [ $(sed 1,2d "$DIR/argo.log" | awk '{print $2}' | grep -w $name | wc -l) == 0 ]; then
         echo "创建 TUNNEL $name"
