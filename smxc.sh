@@ -45,6 +45,9 @@ install_deps() {
 get_radar_info() {
     local ipver="${1:-4}"
     RADAR_JSON=$(curl -"$ipver" --max-time 8 -sS "https://speed.cloudflare.com/meta" \
+        -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" \
+        -H "Accept: application/json, text/plain, */*" \
+        -H "Accept-Language: en-US,en;q=0.9" \
         -H "Referer: https://speed.cloudflare.com/" \
         -H "Origin: https://speed.cloudflare.com" 2>/dev/null)
     echo "$RADAR_JSON" > "$DIR/radar.json" 2>/dev/null
