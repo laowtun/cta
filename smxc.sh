@@ -151,7 +151,7 @@ download_xray() {
     esac
     echo "  下载 Xray ($arch)..."
     cd "$dst" && rm -rf xray xray.zip
-    curl -fsSL --retry 2 -o xray.zip "$url" || { err "Xray 下载失败"; return 1; }
+    curl -fSL --retry 2 -o xray.zip "$url" || { err "Xray 下载失败"; return 1; }
     unzip -o xray.zip -d xray >/dev/null 2>&1 || { err "Xray 解压失败"; return 1; }
     chmod +x "$dst/xray/xray"; CORE_BIN="$dst/xray/xray"; rm -rf "$dst/xray.zip"
     echo "  Xray 就绪: $CORE_BIN"
@@ -169,7 +169,7 @@ download_singbox() {
     esac
     echo "  下载 sing-box $ver ($arch)..."
     cd "$dst" && rm -rf singbox.tar.gz singbox
-    curl -fsSL --retry 2 -o singbox.tar.gz "$url" || { err "sing-box 下载失败"; return 1; }
+    curl -fSL --retry 2 -o singbox.tar.gz "$url" || { err "sing-box 下载失败"; return 1; }
     tar xzf singbox.tar.gz -C "$dst" 2>/tmp/sb_err || { err "sing-box 解压失败"; return 1; }
     mv "$dst"/sing-box-*/* "$dst"/ 2>/dev/null; rm -rf "$dst"/sing-box-*/
     chmod +x "$dst/sing-box" 2>/dev/null; CORE_BIN="$dst/sing-box"; rm -rf "$dst/singbox.tar.gz"
@@ -188,7 +188,7 @@ download_mihomo() {
     esac
     echo "  下载 mihomo $ver ($arch)..."
     cd "$dst" && rm -rf mihomo.gz mihomo
-    curl -fsSL --retry 2 -o mihomo.gz "$url" || { err "mihomo 下载失败"; return 1; }
+    curl -fSL --retry 2 -o mihomo.gz "$url" || { err "mihomo 下载失败"; return 1; }
     gzip -d mihomo.gz 2>/dev/null || { [ -f mihomo.gz ] && mv mihomo.gz mihomo 2>/dev/null; }
     [ ! -f "$dst/mihomo" ] && { err "mihomo 解压失败"; return 1; }
     chmod +x "$dst/mihomo"; CORE_BIN="$dst/mihomo"
@@ -204,7 +204,7 @@ download_cloudflared() {
     esac
     echo "  下载 cloudflared ($arch)..."
     cd "$dst" && rm -rf cloudflared
-    curl -fsSL --retry 2 -o cloudflared "$url" || { err "cloudflared 下载失败"; return 1; }
+    curl -fSL --retry 2 -o cloudflared "$url" || { err "cloudflared 下载失败"; return 1; }
     chmod +x "$dst/cloudflared"; echo "  cloudflared 就绪"
 }
 download_all() {
