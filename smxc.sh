@@ -42,17 +42,26 @@ install_deps() {
 
 # ---------- IP信息获取 ----------
 # speed.cloudflare.com/meta 获取完整信息（含 asOrganization）
-# $1 = 4 或 6，强制 IPv4/IPv6 连接
 get_radar_info() {
-    local ip_flag="-${1:-4}"
-    RADAR_JSON=$(curl $ip_flag --max-time 8 -sS "https://speed.cloudflare.com/meta" \
+    RADAR_JSON=$(curl --max-time 8 -sS "https://speed.cloudflare.com/meta" \
         -H "Referer: https://speed.cloudflare.com/" \
         -H "Origin: https://speed.cloudflare.com" 2>/dev/null)
     echo "$RADAR_JSON" > "$DIR/radar.json" 2>/dev/null
 }
 radar_field() {
     local key="$1"
-    echo "$RADAR_JSON" | sed -n "s/.*\"${key}\"[[:space:]]*:[[:space:]]*\"\{0,1\}\([^\",}]*\).*/\1/p" | head -1
+    local raw=$(printf '%s' "$RADAR_JSON" | tr -d '\n')
+    # 1. 数组形式 "key":[...] 取最后一个元素
+    local arr=$(printf '%s' "$raw" | grep -oP "\"${key}\"\s*:\s*\[\K[^\]]*")
+    if [ -n "$arr" ]; then
+        printf '%s' "$arr" | tr ',' '\n' | sed 's/^[ \t]*//; s/[ \t]*$//; s/^"//; s/"$//' | tail -1
+        return
+    fi
+    # 2. 字符串形式 "key":"value"
+    local s=$(printf '%s' "$raw" | grep -oP "\"${key}\"\s*:\s*\"\K[^\"]+" | head -1)
+    if [ -n "$s" ]; then printf '%s' "$s"; return; fi
+    # 3. 数字形式 "key":123
+    printf '%s' "$raw" | grep -oP "\"${key}\"\s*:\s*\K[0-9]+" | head -1
 }
 gen_node_name() {
     local c=$(radar_field country) a=$(radar_field asn) org=$(radar_field asOrganization) ci=$(radar_field city)
@@ -347,15 +356,11 @@ quicktunnel() {
     mkdir -p "$DIR"
     read -p "请选择协议(1.vmess,2.vless,默认1): " protocol
     [ -z "$protocol" ] && protocol=1
-    while true; do
-        read -r -p "请选择argo连接IPV4或IPV6(输入4或6,默认4): " ips
-        [ -z "$ips" ] && ips=4
-        { [ "$ips" = "4" ] || [ "$ips" = "6" ]; } && break
-        warn "请输入 4 或 6"
-    done
+    read -p "请选择 argo 连接 IPv4 或 IPv6(输入 4 或 6,默认 4): " ipver
+    [ -z "$ipver" ] && ipver=4
     stop_services >/dev/null 2>&1
     echo "[INFO] 获取节点信息..."
-    get_radar_info "$ips"
+    get_radar_info
     isp=$(gen_node_name)
     echo "[OK] 节点名称: $isp"
     download_all || { err "下载失败"; exit 1; }
@@ -368,7 +373,7 @@ quicktunnel() {
         *)      "$CORE_BIN" run -c "$DIR/config.json" >/dev/null 2>&1 & ;;
     esac
     sleep 1
-    "$DIR/cloudflared" tunnel --url http://localhost:$port --no-autoupdate --edge-ip-version 4 --protocol http2 >"$DIR/argo.log" 2>&1 &
+    "$DIR/cloudflared" tunnel --url http://localhost:$port --no-autoupdate --edge-ip-version $ipver --protocol http2 >"$DIR/argo.log" 2>&1 &
     echo "等待 cloudflare argo 生成地址..."
     sleep 4; n=0
     while true; do
@@ -386,6 +391,8 @@ quicktunnel() {
 # ---------- 模式3: Token+域名固定隧道 ----------
 token_tunnel() {
     mkdir -p "$DIR"
+    read -p "请选择 argo 连接 IPv4 或 IPv6(输入 4 或 6,默认 4): " ipver
+    [ -z "$ipver" ] && ipver=4
     while true; do
         read -r -p "请选择协议(1.vmess,2.vless,默认1): " protocol
         [ -z "$protocol" ] && protocol=1
@@ -416,15 +423,9 @@ token_tunnel() {
         { [ "$port" -ge 1 ] && [ "$port" -le 65535 ]; } 2>/dev/null && break
         warn "端口必须是 1-65535 的数字"
     done
-    while true; do
-        read -r -p "请选择argo连接IPV4或IPV6(输入4或6,默认4): " ips
-        [ -z "$ips" ] && ips=4
-        { [ "$ips" = "4" ] || [ "$ips" = "6" ]; } && break
-        warn "请输入 4 或 6"
-    done
     stop_services >/dev/null 2>&1
     echo "[INFO] 获取节点信息..."
-    get_radar_info "$ips"; isp=$(gen_node_name)
+    get_radar_info; isp=$(gen_node_name)
     echo "[OK] 节点名称: $isp"
     download_all || { err "下载失败"; exit 1; }
     uuid=$(cat /proc/sys/kernel/random/uuid); urlpath=$(echo "$uuid" | cut -d- -f1)
@@ -433,8 +434,8 @@ token_tunnel() {
     local runcmd=$(get_run_cmd)
     install_systemd "${CORE_UNIT}" "$runcmd" "$CORE_NAME"
     if is_alpine; then
-        cat > /etc/local.d/cloudflared.start <<'CEOF'
-$DIR/cloudflared tunnel --no-autoupdate --edge-ip-version 4 --protocol http2 run --token "$(cat $DIR/tunnel.token)" &
+        cat > /etc/local.d/cloudflared.start <<CEOF
+$DIR/cloudflared tunnel --no-autoupdate --edge-ip-version $ipver --protocol http2 run --token "$(cat $DIR/tunnel.token)" &
 CEOF
         chmod +x /etc/local.d/cloudflared.start
         /etc/local.d/cloudflared.start >/dev/null 2>&1
@@ -446,7 +447,7 @@ After=network.target
 [Service]
 TimeoutStartSec=0
 Type=simple
-ExecStart=/bin/bash -c "\$DIR/cloudflared tunnel --no-autoupdate --edge-ip-version 4 --protocol http2 run --token \\\$(cat \$DIR/tunnel.token)"
+ExecStart=/bin/bash -c "\$DIR/cloudflared tunnel --no-autoupdate --edge-ip-version $ipver --protocol http2 run --token \\\$(cat \$DIR/tunnel.token)"
 Restart=on-failure
 RestartSec=5s
 [Install]
@@ -465,21 +466,17 @@ CEOF
 # ---------- 模式2: 网页授权绑定域名 ----------
 installtunnel() {
     mkdir -p "$DIR"
+    read -p "请选择 argo 连接 IPv4 或 IPv6(输入 4 或 6,默认 4): " ipver
+    [ -z "$ipver" ] && ipver=4
     while true; do
         read -r -p "请选择协议(1.vmess,2.vless,默认1): " protocol
         [ -z "$protocol" ] && protocol=1
         { [ "$protocol" = "1" ] || [ "$protocol" = "2" ]; } && break
         warn "请输入 1 或 2"
     done
-    while true; do
-        read -r -p "请选择argo连接IPV4或IPV6(输入4或6,默认4): " ips
-        [ -z "$ips" ] && ips=4
-        { [ "$ips" = "4" ] || [ "$ips" = "6" ]; } && break
-        warn "请输入 4 或 6"
-    done
     stop_services >/dev/null 2>&1
     echo "[INFO] 获取节点信息..."
-    get_radar_info "$ips"; isp=$(gen_node_name)
+    get_radar_info; isp=$(gen_node_name)
     echo "[OK] 节点名称: $isp"
     download_all || { err "下载失败"; exit 1; }
     uuid=$(cat /proc/sys/kernel/random/uuid); urlpath=$(echo "$uuid" | cut -d- -f1)
@@ -488,9 +485,9 @@ installtunnel() {
     clear
     echo "复制下面的链接, 用浏览器打开并授权需要绑定的域名"
     echo "在网页授权完毕后会继续进行下一步设置"
-    "$DIR/cloudflared" --edge-ip-version 4 --protocol http2 tunnel login
+    "$DIR/cloudflared" --edge-ip-version $ipver --protocol http2 tunnel login
     clear
-    "$DIR/cloudflared" --edge-ip-version 4 --protocol http2 tunnel list >"$DIR/argo.log" 2>&1
+    "$DIR/cloudflared" --edge-ip-version $ipver --protocol http2 tunnel list >"$DIR/argo.log" 2>&1
     echo -e "ARGO TUNNEL 当前已经绑定的服务如下\n"
     sed 1,2d "$DIR/argo.log" | awk '{print $2}'
     echo -e "\n自定义一个完整二级域名, 例如 xxx.example.com"
@@ -507,13 +504,13 @@ installtunnel() {
     name=$(echo "$domain" | awk -F\. '{print $1}')
     if [ $(sed 1,2d "$DIR/argo.log" | awk '{print $2}' | grep -w $name | wc -l) = 0 ]; then
         echo "创建 TUNNEL $name"
-        "$DIR/cloudflared" --edge-ip-version 4 --protocol http2 tunnel create $name >"$DIR/argo.log" 2>&1
+        "$DIR/cloudflared" --edge-ip-version $ipver --protocol http2 tunnel create $name >"$DIR/argo.log" 2>&1
     else
         echo "TUNNEL $name 已经存在"
-        "$DIR/cloudflared" --edge-ip-version 4 --protocol http2 tunnel cleanup $name >"$DIR/argo.log" 2>&1
+        "$DIR/cloudflared" --edge-ip-version $ipver --protocol http2 tunnel cleanup $name >"$DIR/argo.log" 2>&1
     fi
     echo "绑定 TUNNEL $name 到域名 $domain"
-    "$DIR/cloudflared" --edge-ip-version 4 --protocol http2 tunnel route dns --overwrite-dns $name $domain >"$DIR/argo.log" 2>&1
+    "$DIR/cloudflared" --edge-ip-version $ipver --protocol http2 tunnel route dns --overwrite-dns $name $domain >"$DIR/argo.log" 2>&1
     tunneluuid=$(grep -oE '[0-9a-f-]{36}' "$DIR/argo.log" | head -1)
     cat > "$DIR/cloudflared.yaml" <<YEOF
 tunnel: $tunneluuid
@@ -527,7 +524,7 @@ YEOF
     install_systemd "${CORE_UNIT}" "$runcmd" "$CORE_NAME"
     if is_alpine; then
         cat > /etc/local.d/cloudflared.start <<CEOF
-$DIR/cloudflared --edge-ip-version 4 --protocol http2 tunnel --config $DIR/cloudflared.yaml run $name &
+$DIR/cloudflared --edge-ip-version $ipver --protocol http2 tunnel --config $DIR/cloudflared.yaml run $name &
 CEOF
         chmod +x /etc/local.d/cloudflared.start
         /etc/local.d/cloudflared.start >/dev/null 2>&1
@@ -539,7 +536,7 @@ After=network.target
 [Service]
 TimeoutStartSec=0
 Type=simple
-ExecStart=$DIR/cloudflared --edge-ip-version 4 --protocol http2 tunnel --config $DIR/cloudflared.yaml run $name
+ExecStart=$DIR/cloudflared --edge-ip-version $ipver --protocol http2 tunnel --config $DIR/cloudflared.yaml run $name
 Restart=on-failure
 RestartSec=5s
 [Install]
