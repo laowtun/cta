@@ -1,9 +1,8 @@
 #!/bin/bash
-# =============================================================================
 # smxc.sh - 代理节点部署脚本
+# 数据源: speed.cloudflare.com/meta
 # 节点名格式: 国家-AS编号-运营商-城市_tls
 # 部署模式: 临时隧道 / Token固定隧道 / 网页授权
-# =============================================================================
 
 # ---------- 全局变量 ----------
 DIR="/opt/smx"
@@ -41,7 +40,6 @@ install_deps() {
 }
 
 # ---------- IP信息获取 ----------
-# speed.cloudflare.com/meta 获取完整信息（含 asOrganization）
 get_radar_info() {
     local ipver="${1:-4}"
     RADAR_JSON=$(curl -"$ipver" --max-time 8 -sS "https://speed.cloudflare.com/meta" \
@@ -52,20 +50,10 @@ get_radar_info() {
         -H "Origin: https://speed.cloudflare.com" 2>/dev/null)
     echo "$RADAR_JSON" > "$DIR/radar.json" 2>/dev/null
 }
+# POSIX 兼容的 JSON 字段提取（BusyBox 也支持）
 radar_field() {
     local key="$1"
-    local raw=$(printf '%s' "$RADAR_JSON" | tr -d '\n')
-    # 1. 数组形式 "key":[...] 取最后一个元素
-    local arr=$(printf '%s' "$raw" | grep -oP "\"${key}\"\s*:\s*\[\K[^\]]*")
-    if [ -n "$arr" ]; then
-        printf '%s' "$arr" | tr ',' '\n' | sed 's/^[ \t]*//; s/[ \t]*$//; s/^"//; s/"$//' | tail -1
-        return
-    fi
-    # 2. 字符串形式 "key":"value"
-    local s=$(printf '%s' "$raw" | grep -oP "\"${key}\"\s*:\s*\"\K[^\"]+" | head -1)
-    if [ -n "$s" ]; then printf '%s' "$s"; return; fi
-    # 3. 数字形式 "key":123
-    printf '%s' "$raw" | grep -oP "\"${key}\"\s*:\s*\K[0-9]+" | head -1
+    echo "$RADAR_JSON" | sed -n "s/.*\"${key}\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p" | head -1
 }
 gen_node_name() {
     local c=$(radar_field country) a=$(radar_field asn) org=$(radar_field asOrganization) ci=$(radar_field city)
@@ -89,11 +77,6 @@ gen_links() {
         echo -e "\n端口 443 可改为 2053 2083 2087 2096 8443\n" >> "$out"
         echo "vless://$uuid@$add:80?encryption=none&security=none&type=ws&host=$host&path=/$path#$ps_url" >> "$out"
         echo -e "\n端口 80 可改为 8080 8880 2052 2082 2086 2095\n" >> "$out"
-    fi
-    if [ "$add" != "speed.cloudflare.com" ] && echo "$add" | grep -q '\.'; then
-        echo "注意:如果 80 8080 8880 2052 2082 2086 2095 端口无法正常使用" >> "$out"
-        echo "请前往 https://dash.cloudflare.com/" >> "$out"
-        echo "检查管理面板 SSL/TLS - 边缘证书 - 始终使用HTTPS 是否处于关闭状态" >> "$out"
     fi
 }
 
@@ -163,7 +146,7 @@ download_xray() {
 download_singbox() {
     local dst="$DIR" arch=$(get_arch) ver url
     mkdir -p "$dst"
-    ver=$(curl -fsSL --max-time 10 "https://api.github.com/repos/SagerNet/sing-box/releases/latest" 2>/dev/null | grep -oP '"tag_name":\s*"\K[^"]+' | sed 's/^v//')
+    ver=$(curl -fsSL --max-time 10 "https://api.github.com/repos/SagerNet/sing-box/releases/latest" 2>/dev/null | sed -n 's/.*"tag_name":"v\([^"]*\)".*/\1/p' | head -1)
     [ -z "$ver" ] && ver="1.13.19"
     case "$arch" in
         amd64) url="https://github.com/SagerNet/sing-box/releases/download/v${ver}/sing-box-${ver}-linux-amd64.tar.gz" ;;
@@ -182,7 +165,7 @@ download_singbox() {
 download_mihomo() {
     local dst="$DIR" arch=$(get_arch) ver url
     mkdir -p "$dst"
-    ver=$(curl -fsSL --max-time 10 "https://api.github.com/repos/MetaCubeX/mihomo/releases/latest" 2>/dev/null | grep -oP '"tag_name":\s*"\K[^"]+' | sed 's/^v//')
+    ver=$(curl -fsSL --max-time 10 "https://api.github.com/repos/MetaCubeX/mihomo/releases/latest" 2>/dev/null | sed -n 's/.*"tag_name":"v\([^"]*\)".*/\1/p' | head -1)
     [ -z "$ver" ] && ver="1.19.30"
     case "$arch" in
         amd64) url="https://github.com/MetaCubeX/mihomo/releases/download/v${ver}/mihomo-linux-amd64-v1-v${ver}.gz" ;;
@@ -567,7 +550,6 @@ uninstall_all() {
     rm -rf /opt/xray /opt/singbox /opt/mihomo /opt/smx
     rm -f /root/v2ray.txt ./v2ray.txt "/usr/bin/smxc" 2>/dev/null
     rm -rf /root/.cloudflared 2>/dev/null
-    # 删除脚本自身
     rm -f /root/smxc.sh /root/smxc1.sh ./smxc.sh 2>/dev/null
     systemctl --system daemon-reload 2>/dev/null
     clear; echo "所有服务都卸载完成"
