@@ -109,7 +109,7 @@ choose_core() {
     echo "  2. sing-box"
     echo "  3. mihomo (Clash Meta)"
     echo "  0. 退出"
-    read -p "请输入选择\(默认1\): " core
+    read -p "请输入选择[默认1]: " core
     [ -z "$core" ] && core=1
     case "$core" in
         1) CORE=xray;     CORE_NAME="Xray";     CORE_UNIT="smx-xray" ;;
@@ -415,7 +415,7 @@ stop_services() {
 # ---------- 模式1: 临时隧道 ----------
 quicktunnel() {
     mkdir -p "$DIR"
-    read -p "请选择协议\(1.vmess,2.vless,默认1\): " protocol
+    read -p "请选择协议[1.vmess,2.vless,默认1]: " protocol
     [ -z "$protocol" ] && protocol=1
 
     stop_services >/dev/null 2>&1
@@ -466,7 +466,7 @@ token_tunnel() {
     mkdir -p "$DIR"
 
     while true; do
-        read -r -p "请选择协议\(1.vmess,2.vless,默认1\): " protocol
+        read -r -p "请选择协议[1.vmess,2.vless,默认1]: " protocol
         [ -z "$protocol" ] && protocol=1
         if [ "$protocol" = "1" ] || [ "$protocol" = "2" ]; then break; fi
         warn "请输入 1 或 2"
@@ -477,11 +477,11 @@ token_tunnel() {
         echo "提示: Token 很长(200+字符)，粘贴后按回车"
         read -r -p "Token: " token
         if [ -z "$token" ]; then
-            warn "Token 不能为空，请重新粘贴 \(Ctrl+C 退出\)"
+            warn "Token 不能为空，请重新粘贴 [Ctrl+C 退出]"
             continue
         fi
         echo -e "  ${GREEN}Token (前30字符):${NC} ${token:0:30}..."
-        read -r -p "  确认正确？\(Y/n, 默认Y\): " yn
+        read -r -p "  确认正确？[Y/n, 默认Y]: " yn
         [ "$yn" = "n" ] || [ "$yn" = "N" ] && { warn "请重新粘贴"; continue; }
         break
     done
@@ -489,7 +489,7 @@ token_tunnel() {
     while true; do
         read -r -p "请输入绑定域名(如: node.example.com): " tdomain
         if [ -z "$tdomain" ]; then
-            warn "域名不能为空 \(Ctrl+C 退出\)"
+            warn "域名不能为空 [Ctrl+C 退出]"
             continue
         fi
         if ! echo "$tdomain" | grep -qE '^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'; then
@@ -497,7 +497,7 @@ token_tunnel() {
             continue
         fi
         echo -e "  ${GREEN}你输入的是:${NC} $tdomain"
-        read -r -p "  确认正确？\(Y/n, 默认Y\): " yn
+        read -r -p "  确认正确？[Y/n, 默认Y]: " yn
         [ "$yn" = "n" ] || [ "$yn" = "N" ] && { warn "请重新输入"; continue; }
         break
     done
@@ -565,7 +565,7 @@ installtunnel() {
     mkdir -p "$DIR"
 
     while true; do
-        read -r -p "请选择协议\(1.vmess,2.vless,默认1\): " protocol
+        read -r -p "请选择协议[1.vmess,2.vless,默认1]: " protocol
         [ -z "$protocol" ] && protocol=1
         if [ "$protocol" = "1" ] || [ "$protocol" = "2" ]; then break; fi
         warn "请输入 1 或 2"
@@ -601,7 +601,7 @@ installtunnel() {
     while true; do
         read -r -p "输入绑定域名的完整二级域名: " domain
         if [ -z "$domain" ]; then
-            warn "域名不能为空 \(Ctrl+C 退出\)"
+            warn "域名不能为空 [Ctrl+C 退出]"
             continue
         fi
         if ! echo "$domain" | grep -qE '^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'; then
@@ -609,7 +609,7 @@ installtunnel() {
             continue
         fi
         echo -e "  ${GREEN}你输入的是:${NC} $domain"
-        read -r -p "  确认正确？\(Y/n, 默认Y\): " yn
+        read -r -p "  确认正确？[Y/n, 默认Y]: " yn
         [ "$yn" = "n" ] || [ "$yn" = "N" ] && { warn "请重新输入"; continue; }
         break
     done
@@ -713,13 +713,13 @@ main_menu() {
         echo "  安装目录: $DIR"
         echo "===================================="
         echo "  1. 重新选择内核"
-        echo "  2. 临时隧道 \(trycloudflare, 重启失效\)"
-        echo "  3. 安装服务 \(网页授权绑定域名, 开机自启\)"
-        echo "  4. Token+域名 \(固定隧道, 开机自启\)"
+        echo "  2. 临时隧道 [trycloudflare, 重启失效]"
+        echo "  3. 安装服务 [网页授权绑定域名, 开机自启]"
+        echo "  4. Token+域名 [固定隧道, 开机自启]"
         echo "  5. 卸载服务"
         echo "  6. 清空缓存"
         echo "  0. 退出"
-        read -p "请输入选择\(默认2\): " m
+        read -p "请输入选择[默认2]: " m
         [ -z "$m" ] && m=2
         case "$m" in
             1) choose_core ;;
