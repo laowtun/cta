@@ -43,7 +43,8 @@ install_deps() {
 # ---------- IP信息获取 ----------
 # speed.cloudflare.com/meta 获取完整信息（含 asOrganization）
 get_radar_info() {
-    RADAR_JSON=$(curl --max-time 8 -sS "https://speed.cloudflare.com/meta" \
+    local ipver="${1:-4}"
+    RADAR_JSON=$(curl -"$ipver" --max-time 8 -sS "https://speed.cloudflare.com/meta" \
         -H "Referer: https://speed.cloudflare.com/" \
         -H "Origin: https://speed.cloudflare.com" 2>/dev/null)
     echo "$RADAR_JSON" > "$DIR/radar.json" 2>/dev/null
@@ -360,7 +361,7 @@ quicktunnel() {
     [ -z "$ipver" ] && ipver=4
     stop_services >/dev/null 2>&1
     echo "[INFO] 获取节点信息..."
-    get_radar_info
+    get_radar_info "$ipver"
     isp=$(gen_node_name)
     echo "[OK] 节点名称: $isp"
     download_all || { err "下载失败"; exit 1; }
@@ -425,7 +426,7 @@ token_tunnel() {
     done
     stop_services >/dev/null 2>&1
     echo "[INFO] 获取节点信息..."
-    get_radar_info; isp=$(gen_node_name)
+    get_radar_info "$ipver"; isp=$(gen_node_name)
     echo "[OK] 节点名称: $isp"
     download_all || { err "下载失败"; exit 1; }
     uuid=$(cat /proc/sys/kernel/random/uuid); urlpath=$(echo "$uuid" | cut -d- -f1)
@@ -476,7 +477,7 @@ installtunnel() {
     done
     stop_services >/dev/null 2>&1
     echo "[INFO] 获取节点信息..."
-    get_radar_info; isp=$(gen_node_name)
+    get_radar_info "$ipver"; isp=$(gen_node_name)
     echo "[OK] 节点名称: $isp"
     download_all || { err "下载失败"; exit 1; }
     uuid=$(cat /proc/sys/kernel/random/uuid); urlpath=$(echo "$uuid" | cut -d- -f1)
