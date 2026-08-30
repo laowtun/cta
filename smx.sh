@@ -76,7 +76,18 @@ get_radar_info() {
 }
 radar_field() {
     local key="$1"
-    echo "$RADAR_JSON" | sed -n "s/.*\"${key}\"[[:space:]]*:[[:space:]]*\"\{0,1\}\([^\",}]*\).*/\1/p" | head -1
+    local raw=$(printf '%s' "$RADAR_JSON" | tr -d '\n')
+    # 1. 数组形式 "key":[...] 取最后一个元素
+    local arr=$(printf '%s' "$raw" | grep -oP "\"${key}\"\s*:\s*\[\K[^\]]*")
+    if [ -n "$arr" ]; then
+        printf '%s' "$arr" | tr ',' '\n' | sed 's/^[ \t]*//; s/[ \t]*$//; s/^"//; s/"$//' | tail -1
+        return
+    fi
+    # 2. 字符串形式 "key":"value"
+    local s=$(printf '%s' "$raw" | grep -oP "\"${key}\"\s*:\s*\"\K[^\"]+" | head -1)
+    if [ -n "$s" ]; then printf '%s' "$s"; return; fi
+    # 3. 数字形式 "key":123
+    printf '%s' "$raw" | grep -oP "\"${key}\"\s*:\s*\K[0-9]+" | head -1
 }
 gen_node_name() {
     local c=$(radar_field country) a=$(radar_field asn) ci=$(radar_field city)
@@ -164,7 +175,7 @@ download_xray() {
     esac
     echo "  下载 Xray ($arch)..."
     cd "$dst" && rm -rf xray xray.zip
-    if ! curl -fsSL --retry 2 -o xray.zip "$url"; then err "Xray 下载失败"; return 1; fi
+    if ! curl -fSL --retry 2 -o xray.zip "$url"; then err "Xray 下载失败"; return 1; fi
     if ! unzip -o xray.zip -d xray >/dev/null 2>&1; then err "Xray 解压失败"; return 1; fi
     chmod +x "$dst/xray/xray"
     CORE_BIN="$dst/xray/xray"
@@ -186,7 +197,7 @@ download_singbox() {
     esac
     echo "  下载 sing-box $ver ($arch)..."
     cd "$dst" && rm -rf singbox.tar.gz singbox
-    if ! curl -fsSL --retry 2 -o singbox.tar.gz "$url"; then err "sing-box 下载失败"; return 1; fi
+    if ! curl -fSL --retry 2 -o singbox.tar.gz "$url"; then err "sing-box 下载失败"; return 1; fi
     if ! tar xzf singbox.tar.gz -C "$dst" 2>/tmp/sb_err; then err "sing-box 解压失败: $(cat /tmp/sb_err)"; return 1; fi
     mv "$dst"/sing-box-*/* "$dst"/ 2>/dev/null
     rm -rf "$dst"/sing-box-*/
@@ -210,7 +221,7 @@ download_mihomo() {
     esac
     echo "  下载 mihomo $ver ($arch)..."
     cd "$dst" && rm -rf mihomo.gz mihomo
-    if ! curl -fsSL --retry 2 -o mihomo.gz "$url"; then err "mihomo 下载失败"; return 1; fi
+    if ! curl -fSL --retry 2 -o mihomo.gz "$url"; then err "mihomo 下载失败"; return 1; fi
     if ! gzip -d mihomo.gz 2>/dev/null; then
         [ -f mihomo.gz ] && mv mihomo.gz mihomo 2>/dev/null
     fi
@@ -231,7 +242,7 @@ download_cloudflared() {
     esac
     echo "  下载 cloudflared ($arch)..."
     cd "$dst" && rm -rf cloudflared
-    if ! curl -fsSL --retry 2 -o cloudflared "$url"; then err "cloudflared 下载失败"; return 1; fi
+    if ! curl -fSL --retry 2 -o cloudflared "$url"; then err "cloudflared 下载失败"; return 1; fi
     chmod +x "$dst/cloudflared"
     echo "  cloudflared 就绪"
 }
@@ -617,6 +628,8 @@ uninstall_all() {
     rm -f /root/v2ray.txt ./v2ray.txt "/usr/bin/smx" 2>/dev/null
     # 清理网页授权模式产生的云凭证 (cert.pem + tunnel json)
     rm -rf /root/.cloudflared 2>/dev/null
+    # 删除脚本自身
+    rm -f /root/smx.sh ./smx.sh 2>/dev/null
     systemctl --system daemon-reload >/dev/null 2>&1
     clear
     echo "所有服务都卸载完成"
