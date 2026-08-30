@@ -53,7 +53,11 @@ get_radar_info() {
 # POSIX 兼容的 JSON 字段提取（BusyBox 也支持）
 radar_field() {
     local key="$1"
-    echo "$RADAR_JSON" | sed -n "s/.*\"${key}\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p" | head -1
+    # 先尝试匹配字符串 "key":"value"
+    local s=$(echo "$RADAR_JSON" | sed -n "s/.*\"${key}\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\\1/p" | head -1)
+    if [ -n "$s" ]; then echo "$s"; return; fi
+    # 再尝试匹配数字 "key":123
+    echo "$RADAR_JSON" | sed -n "s/.*\"${key}\"[[:space:]]*:[[:space:]]*\\([0-9]*\\).*/\\1/p" | head -1
 }
 gen_node_name() {
     local c=$(radar_field country) a=$(radar_field asn) org=$(radar_field asOrganization) ci=$(radar_field city)
