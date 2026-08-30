@@ -43,8 +43,10 @@ install_deps() {
 
 # ---------- IP信息获取 ----------
 # speed.cloudflare.com/meta 获取完整信息（含 asOrganization）
+# $1 = 4 或 6，强制 IPv4/IPv6 连接
 get_radar_info() {
-    RADAR_JSON=$(curl --max-time 8 -sS "https://speed.cloudflare.com/meta" \
+    local ip_flag="-${1:-4}"
+    RADAR_JSON=$(curl $ip_flag --max-time 8 -sS "https://speed.cloudflare.com/meta" \
         -H "Referer: https://speed.cloudflare.com/" \
         -H "Origin: https://speed.cloudflare.com" 2>/dev/null)
     echo "$RADAR_JSON" > "$DIR/radar.json" 2>/dev/null
@@ -56,8 +58,6 @@ radar_field() {
 gen_node_name() {
     local c=$(radar_field country) a=$(radar_field asn) org=$(radar_field asOrganization) ci=$(radar_field city)
     [ -z "$c" ] && c=XX; [ -z "$a" ] && a=0; [ -z "$org" ] && org=Unknown; [ -z "$ci" ] && ci=XX
-    # 城市名连字符改下划线，避免和分隔符混淆
-    ci=$(echo "$ci" | tr '-' '_')
     echo "${c}-AS${a}-${org}-${ci}"
 }
 
@@ -349,9 +349,15 @@ quicktunnel() {
     mkdir -p "$DIR"
     read -p "请选择协议(1.vmess,2.vless,默认1): " protocol
     [ -z "$protocol" ] && protocol=1
+    while true; do
+        read -r -p "请选择argo连接IPV4或IPV6(输入4或6,默认4): " ips
+        [ -z "$ips" ] && ips=4
+        { [ "$ips" = "4" ] || [ "$ips" = "6" ]; } && break
+        warn "请输入 4 或 6"
+    done
     stop_services >/dev/null 2>&1
     echo "[INFO] 获取节点信息..."
-    get_radar_info
+    get_radar_info "$ips"
     isp=$(gen_node_name)
     echo "[OK] 节点名称: $isp"
     download_all || { err "下载失败"; exit 1; }
@@ -412,9 +418,15 @@ token_tunnel() {
         { [ "$port" -ge 1 ] && [ "$port" -le 65535 ]; } 2>/dev/null && break
         warn "端口必须是 1-65535 的数字"
     done
+    while true; do
+        read -r -p "请选择argo连接IPV4或IPV6(输入4或6,默认4): " ips
+        [ -z "$ips" ] && ips=4
+        { [ "$ips" = "4" ] || [ "$ips" = "6" ]; } && break
+        warn "请输入 4 或 6"
+    done
     stop_services >/dev/null 2>&1
     echo "[INFO] 获取节点信息..."
-    get_radar_info; isp=$(gen_node_name)
+    get_radar_info "$ips"; isp=$(gen_node_name)
     echo "[OK] 节点名称: $isp"
     download_all || { err "下载失败"; exit 1; }
     uuid=$(cat /proc/sys/kernel/random/uuid); urlpath=$(echo "$uuid" | cut -d- -f1)
@@ -461,9 +473,15 @@ installtunnel() {
         { [ "$protocol" = "1" ] || [ "$protocol" = "2" ]; } && break
         warn "请输入 1 或 2"
     done
+    while true; do
+        read -r -p "请选择argo连接IPV4或IPV6(输入4或6,默认4): " ips
+        [ -z "$ips" ] && ips=4
+        { [ "$ips" = "4" ] || [ "$ips" = "6" ]; } && break
+        warn "请输入 4 或 6"
+    done
     stop_services >/dev/null 2>&1
     echo "[INFO] 获取节点信息..."
-    get_radar_info; isp=$(gen_node_name)
+    get_radar_info "$ips"; isp=$(gen_node_name)
     echo "[OK] 节点名称: $isp"
     download_all || { err "下载失败"; exit 1; }
     uuid=$(cat /proc/sys/kernel/random/uuid); urlpath=$(echo "$uuid" | cut -d- -f1)
