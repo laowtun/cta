@@ -1,7 +1,6 @@
 #!/bin/bash
 # =============================================================================
 # smxc.sh - 代理节点部署脚本
-# 数据源: speed.cloudflare.com/meta
 # 节点名格式: 国家-AS编号-运营商-城市_tls
 # 部署模式: 临时隧道 / Token固定隧道 / 网页授权
 # =============================================================================
@@ -104,7 +103,6 @@ choose_core() {
     clear
     echo "===================================="
     echo "  smxc.sh - 代理节点部署"
-    echo "  数据源: speed.cloudflare.com/meta"
     echo "===================================="
     echo "  1. Xray"
     echo "  2. sing-box"
@@ -584,7 +582,6 @@ main_menu() {
         clear
         echo "===================================="
         echo "  smxc.sh - 代理节点部署"
-        echo "  数据源: speed.cloudflare.com/meta"
         echo ""
         echo "  当前内核: $CORE_NAME"
         echo "  安装目录: $DIR"
