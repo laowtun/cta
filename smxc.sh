@@ -563,7 +563,9 @@ uninstall_all() {
     rm -rf /opt/xray /opt/singbox /opt/mihomo /opt/smx
     rm -f /root/v2ray.txt ./v2ray.txt "/usr/bin/smxc" 2>/dev/null
     rm -rf /root/.cloudflared 2>/dev/null
-    systemctl --system daemon-reload >/dev/null 2>&1
+    # 删除脚本自身
+    rm -f /root/smxc.sh /root/smxc1.sh ./smxc.sh 2>/dev/null
+    systemctl --system daemon-reload 2>/dev/null
     clear; echo "所有服务都卸载完成"
 }
 
