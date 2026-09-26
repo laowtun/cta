@@ -297,6 +297,7 @@ gen_config_singbox() {
         cat > "$conf" <<EOF
 {
   "log": {"level": "warning", "timestamp": true},
+  "dns": {"servers": [{"type": "udp", "tag": "dns", "server": "8.8.8.8"}]},
   "inbounds": [{
     "type": "vless",
     "listen": "127.0.0.1",
@@ -311,6 +312,7 @@ EOF
         cat > "$conf" <<EOF
 {
   "log": {"level": "warning", "timestamp": true},
+  "dns": {"servers": [{"type": "udp", "tag": "dns", "server": "8.8.8.8"}]},
   "inbounds": [{
     "type": "vmess",
     "listen": "127.0.0.1",
