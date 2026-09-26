@@ -235,11 +235,11 @@ gen_config_singbox() {
     local protocol="$1" port="$2" uuid="$3" path="$4" conf="$5"
     if [ "$protocol" = "2" ]; then
         cat > "$conf" <<XEOF
-{"log":{"level":"warning","timestamp":true},"inbounds":[{"type":"vless","listen":"127.0.0.1","listen_port":$port,"users":[{"uuid":"$uuid","flow":""}],"transport":{"type":"ws","path":"/$path"}}],"outbounds":[{"type":"direct"}]}
+{"log":{"level":"warning","timestamp":true},"dns":{"servers":[{"type":"udp","tag":"dns","server":"8.8.8.8"}]},"inbounds":[{"type":"vless","listen":"127.0.0.1","listen_port":$port,"users":[{"uuid":"$uuid","flow":""}],"transport":{"type":"ws","path":"/$path"}}],"outbounds":[{"type":"direct"}]}
 XEOF
     else
         cat > "$conf" <<XEOF
-{"log":{"level":"warning","timestamp":true},"inbounds":[{"type":"vmess","listen":"127.0.0.1","listen_port":$port,"users":[{"uuid":"$uuid","alterId":0}],"transport":{"type":"ws","path":"/$path"}}],"outbounds":[{"type":"direct"}]}
+{"log":{"level":"warning","timestamp":true},"dns":{"servers":[{"type":"udp","tag":"dns","server":"8.8.8.8"}]},"inbounds":[{"type":"vmess","listen":"127.0.0.1","listen_port":$port,"users":[{"uuid":"$uuid","alterId":0}],"transport":{"type":"ws","path":"/$path"}}],"outbounds":[{"type":"direct"}]}
 XEOF
     fi
 }
