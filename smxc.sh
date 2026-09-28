@@ -476,7 +476,7 @@ After=network.target
 [Service]
 TimeoutStartSec=0
 Type=simple
-ExecStart=/bin/bash -c "\$DIR/cloudflared tunnel --no-autoupdate --edge-ip-version $ipver --protocol http2 run --token \\\$(cat \$DIR/tunnel.token)"
+ExecStart=/bin/bash -c "$DIR/cloudflared tunnel --no-autoupdate --edge-ip-version $ipver --protocol http2 run --token \$(cat $DIR/tunnel.token)"
 Restart=on-failure
 RestartSec=5s
 [Install]
